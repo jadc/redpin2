@@ -5,10 +5,7 @@ from discord.ui import View, Button
 
 from config import Config
 
-#test_guild = discord.Object(id = 990863126566154270)
-
 @app_commands.default_permissions(administrator=True)
-#@app_commands.guilds(test_guild)
 class Commands(commands.GroupCog, name='redpin'):
     def __init__(self, bot: commands.Bot, config) -> None:
         self.bot = bot
@@ -16,22 +13,16 @@ class Commands(commands.GroupCog, name='redpin'):
         super().__init__()
         print('Commands init')
 
-    # TODO: remove ###############################################################################
-    @app_commands.command(name = 'sync', description = 'Development only: Updates commands')
-    async def sync(self, interaction: discord.Interaction):
-        await self.bot.tree.sync(guild = test_guild) # temp
-        await interaction.response.send_message('Synced', ephemeral = True)
-    # TODO: remove ###############################################################################
-
     @app_commands.command(name = 'channel', description = 'Set which channel to send pins to.')
     async def channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         # if channel was set before
         if self.config.get(interaction.guild_id)['channel'] is not None:
             # remove webhook from old channel
             old_channel = interaction.guild.get_channel( self.config.get(interaction.guild_id)['channel'] )
-            for hook in await old_channel.webhooks():
-                if hook.user.id == self.bot.user.id:
-                    await hook.delete(reason = 'Pin channel changed, webhook automatically removed')
+            if old_channel is not None:
+                for hook in await old_channel.webhooks():
+                    if hook.user.id == self.bot.user.id:
+                        await hook.delete(reason = 'Pin channel changed, webhook automatically removed')
 
         # update config
         self.config.get(interaction.guild_id)['channel'] = channel.id

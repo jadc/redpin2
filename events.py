@@ -58,13 +58,13 @@ class Events(commands.Cog):
             print('Reaction created by a bot, ignored.')
             return
 
-        # Ignore messages that are already pinned
-        if any(x.me for x in msg.reactions):
-            print('Message already pinned, ignored.')
-            return
-
         # If any reaction fulfill count
         for reaction in msg.reactions:
+            # Ignore messages that are already pinned
+            if any(x.me for x in msg.reactions):
+                print('Message already pinned, ignored.')
+                return
+
             count = reaction.count
 
             # If emoji filters on, check it
@@ -73,12 +73,12 @@ class Events(commands.Cog):
                 if hasattr(reaction.emoji, 'id'):
                     if reaction.emoji.id not in filt['custom']:
                         print('Reaction not in custom filter, ignored.')
-                        continue
+                        return
                 else:
                     # unicode emojis have no id, emoji is a str
                     if reaction.emoji not in filt['unicode']:
                         print('Reaction not in unicode filter, ignored.')
-                        continue
+                        return
 
             # self pinning
             if not cfg['selfpin']:
@@ -89,10 +89,10 @@ class Events(commands.Cog):
 
             print('Reaction count:', count)
             if count >= self.config.get(guild.id)['count']:
-                await self.pin_message(msg, pin_channel) 
-                print('Pinned a message.')
                 await msg.add_reaction(reaction)  # Marked as pinned
                 print('Marked a message as pinned.')
+                await self.pin_message(msg, pin_channel) 
+                print('Pinned a message.')
                 return
 
     async def get_webhook(self, pin_channel):
