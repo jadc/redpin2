@@ -11,21 +11,22 @@ class Bot(commands.Bot):
         intents.reactions = True
         intents.message_content = True
         intents.members = True
-        super().__init__(command_prefix = 'whydoineedacommandprefixthisisfuckingdumb', intents=intents)
+        super().__init__(command_prefix = 'Born2PinForced2Prefix', intents=intents)
 
         self.config = Config()
         self.synced = False
 
-    async def on_ready(self):
-        await self.wait_until_ready()
+    async def setup_hook(self):
         await self.add_cog( Commands(self, self.config) )
         await self.add_cog( Events(self, self.config) )
 
-        if not self.synced:
-            await self.tree.sync()
-            self.synced = True
-            print('Synced')
+        #if not self.synced:
+        #    await self.tree.sync()
+        #    self.synced = True
+        #    print('Synced')
 
+    async def on_ready(self):
+        await self.wait_until_ready()
         print('Ready')
 
 if __name__ == "__main__":
