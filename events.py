@@ -10,8 +10,8 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
-        print('---')
-        print(payload)
+        #print('---')
+        #print(payload)
 
         # Ignore DMs
         if payload.guild_id is None:
@@ -91,8 +91,10 @@ class Events(commands.Cog):
             if count >= self.config.get(guild.id)['count']:
                 await msg.add_reaction(reaction)  # Marked as pinned
                 print('Marked a message as pinned.')
-                await self.pin_message(msg, pin_channel) 
+                pinned_msg = await self.pin_message(msg, pin_channel) 
                 print('Pinned a message.')
+                await self.clone_reactions(msg, pinned_msg)
+                print('Cloned all reactions')
                 return
 
     async def get_webhook(self, pin_channel):
@@ -118,7 +120,8 @@ class Events(commands.Cog):
             else:
                 content_w_files += f'\n{att.url}'
 
-        await hook.send(
+        return await hook.send(
+            wait = True,
             content = content_w_files,
             username = message.author.display_name,
             avatar_url = message.author.display_avatar.url,
@@ -128,3 +131,10 @@ class Events(commands.Cog):
             # jump to msg button
             view = View().add_item( Button(label="Jump", url=message.jump_url) )
         )
+
+    async def clone_reactions(self, source, target):
+        for reaction in source.reactions:
+            try:
+                await target.add_reaction(reaction)
+            except discord.errors.HTTPException:
+                print('Attempted to react with an unknown emoji. Skipping...')

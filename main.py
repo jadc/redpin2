@@ -14,16 +14,18 @@ class Bot(commands.Bot):
         super().__init__(command_prefix = 'Born2PinForced2Prefix', intents=intents)
 
         self.config = Config()
-        self.synced = False
+
+        # Set to True when developing
+        self.synced = True
 
     async def setup_hook(self):
         await self.add_cog( Commands(self, self.config) )
         await self.add_cog( Events(self, self.config) )
 
-        #if not self.synced:
-        #    await self.tree.sync()
-        #    self.synced = True
-        #    print('Synced')
+        if not self.synced:
+            await self.tree.sync()
+            self.synced = True
+            print('Synced')
 
     async def on_ready(self):
         await self.wait_until_ready()
