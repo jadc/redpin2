@@ -6,12 +6,18 @@ class Events(commands.Cog):
     def __init__(self, bot: commands.Bot, config):
         self.bot = bot
         self.config = config
+        self.to_be_marked = set()
         print('Events init')
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         #print('---')
         #print(payload)
+
+        # Message is being pinned
+        if payload.message_id in self.to_be_marked:
+            print('Message is in queue to be pinned, ignoring reactions.')
+            return
 
         # Ignore DMs
         if payload.guild_id is None:
@@ -53,18 +59,13 @@ class Events(commands.Cog):
             print('Reaction on sticker, ignored.')
             return
 
-        # Never pin messages by bot
-        if msg.author.id == self.bot.user.id:
-            print('Reaction created by a bot, ignored.')
+        # Ignore messages that are already pinned
+        if any(x.me for x in msg.reactions):
+            print('Message already pinned, ignored.')
             return
 
         # If any reaction fulfill count
         for reaction in msg.reactions:
-            # Ignore messages that are already pinned
-            if any(x.me for x in msg.reactions):
-                print('Message already pinned, ignored.')
-                return
-
             count = reaction.count
 
             # If emoji filters on, check it
@@ -87,14 +88,20 @@ class Events(commands.Cog):
                         print('Selfpin subtracted from total')
                         count -= 1
 
-            print('Reaction count:', count)
             if count >= self.config.get(guild.id)['count']:
-                await msg.add_reaction(reaction)  # Marked as pinned
-                print('Marked a message as pinned.')
+                # This 'queue' system prevents the same message
+                # being posted multiple times when reactions come in
+                # quickly. add_reaction is not instant, the queue is.
+                self.to_be_marked.add(payload.message_id)
+
                 pinned_msg = await self.pin_message(msg, pin_channel) 
                 print('Pinned a message.')
+                await msg.add_reaction(reaction)  # Marked as pinned
+                print('Marked a message as pinned.')
                 await self.clone_reactions(msg, pinned_msg)
                 print('Cloned all reactions')
+
+                self.to_be_marked.discard(msg.id)
                 return
 
     async def get_webhook(self, pin_channel):
