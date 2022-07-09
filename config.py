@@ -21,5 +21,5 @@ class Config():
 
     def get(self, guild_id):
         # TODO: change defaults
-        default_guild = {'channel': None, 'count': 3, 'nsfw': False, 'selfpin': False, 'filter': {'unicode': [], 'custom': []}}
+        default_guild = {'channel': None, 'count': 3, 'nsfw': False, 'selfpin': False, 'filter': []}
         return self.config.setdefault( str(guild_id), default_guild )

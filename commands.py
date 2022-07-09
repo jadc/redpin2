@@ -73,8 +73,8 @@ class Commands(commands.GroupCog, name='redpin'):
             await interaction.response.send_message(f'Messages can no longer be pinned by their author.', ephemeral = True)
 
     # EMOJI COMMAND
-    @app_commands.command(name = 'emoji', description = 'Customize which emojis can pin messages. Run this command in a private channel!')
-    async def emoji(self, interaction: discord.Interaction):
+    @app_commands.command(name = 'filter', description = 'Customize which emojis can pin messages. Run this command in a private channel!')
+    async def filter(self, interaction: discord.Interaction):
         view = EmojiPrompt()
 
         await interaction.response.send_message('**Customize which emojis can pin messages.**\nReact to this message with the emojis you want to be able to pin messages with.\nSubmit with no reactions to allow any emoji to pin messages.', view=view)
@@ -82,19 +82,7 @@ class Commands(commands.GroupCog, name='redpin'):
 
         if view.value:
             prompt = await interaction.original_message()
-
-            unicode = []
-            custom = []
-            if len(prompt.reactions) > 0:
-                for reaction in prompt.reactions:
-                    if isinstance(reaction.emoji, str):
-                        unicode.append( reaction.emoji )
-                    else:
-                        custom.append( reaction.emoji.id )
-
-            filt = self.config.get(interaction.guild_id)['filter']
-            filt['unicode'] = unicode
-            filt['custom'] = custom
+            self.config.get(interaction.guild_id)['filter'] = [str(x) for x in prompt.reactions]
             self.config.save()
             await interaction.delete_original_message()
 

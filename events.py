@@ -6,7 +6,7 @@ class Events(commands.Cog):
     def __init__(self, bot: commands.Bot, config):
         self.bot = bot
         self.config = config
-        self.to_be_marked = set()
+        self.pinning = set()
         print('Events init')
 
     @commands.Cog.listener()
@@ -15,7 +15,7 @@ class Events(commands.Cog):
         #print(payload)
 
         # Message is being pinned
-        if payload.message_id in self.to_be_marked:
+        if payload.message_id in self.pinning:
             print('Message is in queue to be pinned, ignoring reactions.')
             return
 
@@ -43,7 +43,7 @@ class Events(commands.Cog):
             print('Reaction in NSFW channel, ignored.')
             return
 
-        pin_channel_id = self.config.get(guild.id)['channel']
+        pin_channel_id = cfg['channel']
 
         # Prevent pinning in pin channel
         if payload.channel_id == pin_channel_id:
@@ -64,46 +64,41 @@ class Events(commands.Cog):
             print('Message already pinned, ignored.')
             return
 
-        # If any reaction fulfill count
-        for reaction in msg.reactions:
-            count = reaction.count
+        # Filters
+        pin_reactions = [x for x in msg.reactions if await self.get_real_count(x) >= cfg['count'] and self.is_emoji_allowed(x)]
 
-            # If emoji filters on, check it
-            filt = cfg['filter']
-            if len(filt['unicode']) > 0 or len(filt['custom']) > 0:
-                if hasattr(reaction.emoji, 'id'):
-                    if reaction.emoji.id not in filt['custom']:
-                        print('Reaction not in custom filter, ignored.')
-                        return
-                else:
-                    # unicode emojis have no id, emoji is a str
-                    if reaction.emoji not in filt['unicode']:
-                        print('Reaction not in unicode filter, ignored.')
-                        return
+        if pin_reactions:
+            # Does not matter which reaction is selected
+            reaction = pin_reactions[0]
 
-            # self pinning
-            if not cfg['selfpin']:
-                for user in [user async for user in reaction.users()]:
-                    if user.id == msg.author.id:
-                        print('Selfpin subtracted from total')
-                        count -= 1
+            # This 'queue' system prevents the same message
+            # being posted multiple times when reactions come in
+            # quickly. add_reaction is not instant, the queue is.
+            self.pinning.add(payload.message_id)
 
-            if count >= self.config.get(guild.id)['count']:
-                # This 'queue' system prevents the same message
-                # being posted multiple times when reactions come in
-                # quickly. add_reaction is not instant, the queue is.
-                self.to_be_marked.add(payload.message_id)
+            await msg.add_reaction(reaction)  # Marked as pinned
+            print('Marked a message as pinned.')
+            pinned_msg = await self.pin_message(msg, pin_channel) 
+            print('Pinned a message.')
+            await self.clone_reactions(msg, pinned_msg)
+            print('Cloned all reactions')
 
-                pinned_msg = await self.pin_message(msg, pin_channel) 
-                print('Pinned a message.')
-                await msg.add_reaction(reaction)  # Marked as pinned
-                print('Marked a message as pinned.')
-                await self.clone_reactions(msg, pinned_msg)
-                print('Cloned all reactions')
+            self.pinning.discard(payload.message_id)
 
-                self.to_be_marked.discard(msg.id)
-                return
+    # Filtering process
+    def is_emoji_allowed(self, reaction):
+        allow = self.config.get(reaction.message.guild.id)['filter']
+        return len(allow) <= 0 or str(reaction) in allow
 
+    async def get_real_count(self, reaction):
+        if self.config.get(reaction.message.guild.id)['selfpin']:
+            return reaction.count
+        else:
+            reactions_by_author = [user async for user in reaction.users() if user.id == reaction.message.author.id]
+            return reaction.count - len(reactions_by_author)
+
+
+    # Pinning process
     async def get_webhook(self, pin_channel):
         for hook in await pin_channel.webhooks():
             if hook.user.id == self.bot.user.id:
