@@ -77,7 +77,7 @@ class Commands(commands.GroupCog, name='redpin'):
     async def filter(self, interaction: discord.Interaction):
         view = EmojiPrompt()
 
-        await interaction.response.send_message('**Customize which emojis can pin messages.**\nReact to this message with the emojis you want to be able to pin messages with.\nSubmit with no reactions to allow any emoji to pin messages.', view=view)
+        await interaction.response.send_message('**Customize which emojis can pin messages.**\nReact to this message with the emojis you want to be able to pin messages with.\n*Submit with no reactions to allow any emoji to pin messages.*', view=view)
         await view.wait()
 
         if view.value:
