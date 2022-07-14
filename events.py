@@ -106,7 +106,7 @@ class Events(commands.Cog):
         return await hook.send(
             wait = True,
             content = content_w_files,
-            embeds = message.embeds,
+            #embeds = message.embeds,  # odd behavior
             username = message.author.display_name,
             avatar_url = message.author.display_avatar.url,
             allowed_mentions = discord.AllowedMentions.none(),
